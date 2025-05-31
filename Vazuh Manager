@@ -1,3 +1,45 @@
+# 1. Wazuh GPG key-ის დამატება
+curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | gpg --dearmor -o /etc/apt/trusted.gpg.d/wazuh.gpg
+
+# 2. Wazuh რეპოზიტორის დამატება
+echo "deb https://packages.wazuh.com/4.x/apt/ stable main" | tee /etc/apt/sources.list.d/wazuh.list
+
+# 3. Elastic GPG key-ის დამატება
+curl -s https://artifacts.elastic.co/GPG-KEY-elasticsearch | gpg --dearmor -o /etc/apt/trusted.gpg.d/elastic.gpg
+
+# 4. Elastic Stack-ის რეპოზიტორის დამატება
+echo "deb https://artifacts.elastic.co/packages/7.x/apt stable main" | tee /etc/apt/sources.list.d/elastic-7.x.list
+
+# 5. რეპოზიტორების განახლება
+apt update
+
+# 6. საჭირო პაკეტების ინსტალაცია
+apt install elasticsearch kibana filebeat wazuh-manager wazuh-api -y
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #!/bin/bash
 # ================================
 # Wazuh Server Full Installation on Kali Linux
