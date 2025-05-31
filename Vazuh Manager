@@ -1,0 +1,69 @@
+#!/bin/bash
+# ================================
+# Wazuh Server Full Installation on Kali Linux
+# Installs Elasticsearch, Filebeat, Kibana, and Wazuh Manager
+# ================================
+
+# STEP 1: სისტემის განახლება
+echo "[+] Updating system packages..."
+apt update && apt upgrade -y
+
+# STEP 2: აუცილებელი პაკეტების დაყენება (curl, gnupg, etc.)
+echo "[+] Installing required dependencies..."
+apt install curl apt-transport-https lsb-release gnupg -y
+
+# STEP 3: Elasticsearch და Kibana-ს GPG გასაღებისა და რეპოზიტორიუმის დამატება
+echo "[+] Adding Elasticsearch GPG key and repo..."
+curl -s https://artifacts.elastic.co/GPG-KEY-elasticsearch | gpg --dearmor > /usr/share/keyrings/elastic.gpg
+echo "deb [signed-by=/usr/share/keyrings/elastic.gpg] https://artifacts.elastic.co/packages/7.x/apt stable main" > /etc/apt/sources.list.d/elastic-7.x.list
+
+# STEP 4: Wazuh-ის GPG გასაღების და რეპოზიტორიუმის დამატება
+echo "[+] Adding Wazuh repository and key..."
+curl -s https://packages.wazuh.com/key/GPG-KEY-VAZUH | gpg --dearmor > /usr/share/keyrings/vazuh-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/vazuh-archive-keyring.gpg] https://packages.wazuh.com/4.x/apt/ stable main" > /etc/apt/sources.list.d/vazuh.list
+
+# STEP 5: პაკეტების სიების განახლება
+echo "[+] Updating package lists..."
+apt update
+
+# STEP 6: ძირითადი კომპონენტების დაყენება
+echo "[+] Installing Elasticsearch, Kibana, Filebeat, Wazuh Manager, and API..."
+apt install elasticsearch kibana filebeat wazuh-manager wazuh-api -y
+
+# STEP 7: Elasticsearch-ის ჩართვა და კონფიგურაცია
+echo "[+] Configuring Elasticsearch..."
+echo -e "\nnetwork.host: 127.0.0.1\nhttp.port: 9200" >> /etc/elasticsearch/elasticsearch.yml
+systemctl daemon-reexec
+systemctl enable elasticsearch --now
+systemctl restart elasticsearch
+
+# STEP 8: Wazuh Manager-ის ჩართვა
+echo "[+] Starting Wazuh Manager..."
+systemctl enable wazuh-manager --now
+
+# STEP 9: Filebeat-ის კონფიგურაცია Wazuh-ისთვის
+echo "[+] Configuring Filebeat for Wazuh..."
+curl -so /etc/filebeat/filebeat.yml https://packages.wazuh.com/4.x/filebeat/filebeat.yml
+chmod go+r /etc/filebeat/filebeat.yml
+
+# STEP 10: Filebeat მოდულების დაყენება Wazuh-ისთვის
+echo "[+] Installing Filebeat modules for Wazuh..."
+curl -s https://packages.wazuh.com/4.x/filebeat/wazuh-filebeat-7.10.2.tar.gz | tar -xz -C /usr/share/filebeat/module/
+filebeat modules enable wazuh
+
+# STEP 11: Filebeat-ის გაშვება
+echo "[+] Starting Filebeat..."
+systemctl enable filebeat --now
+
+# STEP 12: Wazuh Kibana Plugin-ის დაყენება
+echo "[+] Installing Wazuh Kibana plugin..."
+/usr/share/kibana/bin/kibana-plugin install https://packages.wazuh.com/4.x/ui/kibana/wazuh_kibana-4.7.0_7.10.2.zip
+
+# STEP 13: Kibana-ს კონფიგურაცია Web UI-სთვის
+echo "[+] Configuring Kibana..."
+echo -e "\nserver.host: \"0.0.0.0\"\nelasticsearch.hosts: [\"http://localhost:9200\"]" >> /etc/kibana/kibana.yml
+systemctl enable kibana --now
+
+# STEP 14: ინსტალაციის დასრულება
+echo -e "\n✅ Installation complete!"
+echo "➡ Access Wazuh Web UI at: http://<Your_Kali_IP>:5601"
